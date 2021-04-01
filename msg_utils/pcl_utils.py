@@ -30,20 +30,46 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import sensor_msgs.msg._point_cloud2 as pcl2  # point cloud library
-from sensor_msgs.msg import PointCloud2  # ros
+from sensor_msgs.msg import PointCloud2
 from sensor_msgs.msg import PointField
-from sensor_msgs.msg import Image as SensorImage
 from std_msgs.msg import Header
-from random import randint
 
-from PIL import Image
-import cv2 as cv
 import numpy as np
 
+
+# Implementation taken from / inspired by http://sebastiangrans.github.io/Visualizing-PCD-with-RViz/
+# @points: Contains n points (rows) with m fields (columns), e.g. x, y, z and i
+# @dtype: data type of each value, e.g. float32
+# @ros_dtype: ros2 PointField type w.r.t. dtype argument
+# @frame: parent coordinate frame
+# @fields: must match number of columns in provided points argument.
+def write_points(points, dtype, ros_dtype, frame, fields='xyzi'):
+    itemsize = np.dtype(dtype).itemsize  # e.g. a 32-bit float takes 4 bytes.
+    data = points.astype(dtype).tobytes()
+
+    # The fields specify what the bytes represents. E.g. The first 4 bytes represents the x-coordinate, the next 4 the
+    # y-coordinate, etc.
+    point_fields = [PointField(name=n, offset=i * itemsize, datatype=ros_dtype, count=1) for i, n in enumerate(fields)]
+
+    # The PointCloud2 message also has a header which specifies which coordinate frame it is represented in.
+    header = Header(frame_id=frame)
+
+    return PointCloud2(
+        header=header,
+        height=1,
+        width=points.shape[0],
+        is_dense=False,
+        is_bigendian=False,
+        fields=point_fields,
+        point_step=(itemsize * len(fields)),  # Every point consists of three float32s.
+        row_step=(itemsize * len(fields) * points.shape[0]),
+        data=data
+    )
+
 ########################################################################################################################
-# The code / two helper functions below are ported from 
+# The code / two helper functions below are ported from
 # https://github.com/ros/common_msgs/tree/noetic-devel/sensor_msgs/src/sensor_msgs
+
 
 import sys
 import math
@@ -131,4 +157,3 @@ def _get_struct_fmt(is_bigendian, fields, field_names=None):
             offset += field.count * datatype_length
 
     return fmt
-########################################################################################################################
