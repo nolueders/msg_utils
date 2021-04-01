@@ -53,5 +53,11 @@ def read_img_as_cv2(img, encoding="rgb8"):
 # @img: image as ros message
 # @encoding: encoding of image data
 # @return: image as numpy array
-def read_img_as_np_arr(img, encoding="rgb8"):
+def read_img_as_np_arr(img, encoding="rgb8"):    
     return np.asarray(read_img_as_cv2(img=img, encoding=encoding))
+
+
+# pure numpy solution: https://answers.ros.org/question/64318/how-do-i-convert-an-ros-image-into-a-numpy-array/
+# not tested and requires some extra work for different encodings, expects RGB
+# def read_img_as_np_arr(img):
+    # return np.frombuffer(img.data, dtype=np.uint8).reshape(img.height, img.width, -1)
