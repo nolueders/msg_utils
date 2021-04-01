@@ -1,12 +1,13 @@
 from sensor_msgs.msg import Image as SensorImage
 
 from cv_bridge import CvBridge, CvBridgeError
-import cv2 as cv
 import numpy as np
 
 
 # @pil_img: PIL image to be written to ros message
 # @frame: parent coordinate frame
+# @encoding: encoding of image data
+# @return: pil image as sensor_msgs.msg.Image
 def write_pil_img(pil_img, frame, encoding="rgb8"):
     img_msg = SensorImage()
     img_msg.header.frame_id = frame
@@ -20,6 +21,25 @@ def write_pil_img(pil_img, frame, encoding="rgb8"):
 
 
 # https://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+# @img: cv2 image, which shall be converted
+# @frame: parent coordinate frame
+# @encoding: encoding of image data
+# @return: cv2 image as sensor_msgs.msg.Image
+def write_cv2_img(img, frame, encoding="rgb8"):
+    bridge = CvBridge()
+    try:
+        img_msg = bridge.cv2_to_imgmsg(img, encoding)
+        img_msg.header.frame_id = frame
+    except CvBridgeError as e:
+        print(e)
+
+    return img_msg
+
+
+# https://wiki.ros.org/cv_bridge/Tutorials/ConvertingBetweenROSImagesAndOpenCVImagesPython
+# @img: image as ros message
+# @encoding: encoding of image data
+# @return: image as cv2 image
 def read_img_as_cv2(img, encoding="rgb8"):
     bridge = CvBridge()
     try:
@@ -27,18 +47,11 @@ def read_img_as_cv2(img, encoding="rgb8"):
     except CvBridgeError as e:
         print(e)
 
-    (rows, cols, channels) = cv2_img.shape
-    if cols > 60 and rows > 60:
-        cv.circle(cv2_img, (50, 50), 10, 255)
-
     return cv2_img
 
 
-def write_cv2_img(img, encoding="rgb8"):
-    bridge = CvBridge()
-    try:
-        img_msg = bridge.cv2_to_imgmsg(img, encoding)
-    except CvBridgeError as e:
-        print(e)
-
-    return img_msg
+# @img: image as ros message
+# @encoding: encoding of image data
+# @return: image as numpy array
+def read_img_as_np_arr(img, encoding="rgb8"):
+    return np.asarray(read_img_as_cv2(img=img, encoding=encoding))
