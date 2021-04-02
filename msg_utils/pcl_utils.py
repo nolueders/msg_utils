@@ -38,7 +38,7 @@ import numpy as np
 
 
 # Implementation taken from / inspired by http://sebastiangrans.github.io/Visualizing-PCD-with-RViz/
-# @points: Contains n points (rows) with m fields (columns), e.g. x, y, z and i
+# @points: Contains n points (rows) with m fields (columns) as numpy array, e.g. x, y, z and i
 # @dtype: data type of each value, e.g. float32
 # @ros_dtype: ros2 PointField type w.r.t. dtype argument
 # @frame: parent coordinate frame
