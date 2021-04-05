@@ -37,19 +37,32 @@ from std_msgs.msg import Header
 import numpy as np
 
 
+# Codes RGB color into a float and returns it.
+# @rgb: List with RGB values between 0 and 255. Out of bound values are clamped.
+def pack_rbg_into_float(rgb):
+    def clamp(x):
+        return max(0, min(x, 255))
+    bit_masked_rgb_color = int("0x{0:02x}{1:02x}{2:02x}".format(clamp(rgb[0]), clamp(rgb[1]), clamp(rgb[2])), 0)
+    return struct.unpack('f', struct.pack('i', bit_masked_rgb_color))[0]
+
+
 # Implementation taken from / inspired by http://sebastiangrans.github.io/Visualizing-PCD-with-RViz/
-# @points: Contains n points (rows) with m fields (columns) as numpy array, e.g. x, y, z and i
-# @dtype: data type of each value, e.g. float32
-# @ros_dtype: ros2 PointField type w.r.t. dtype argument
+# Expects 3 (x, y, z) or 4 (x, y, z, i / rgb) columns depending on content of "opt_point_field" (if empty only 3 cols)
+# @points: Contains n points (rows) with m fields (columns) as numpy array, x, y, z (, i / rgb). All values are 
+# expected and interpreted as float32. Use "pack_rbg_into_float(...)" to code rgb (0-255) into a float.
 # @frame: parent coordinate frame
-# @fields: must match number of columns in provided points argument.
-def write_points(points, dtype, ros_dtype, frame, fields='xyzi'):
-    itemsize = np.dtype(dtype).itemsize  # e.g. a 32-bit float takes 4 bytes.
-    data = points.astype(dtype).tobytes()
+# @opt_point_field: Optional addition field for e.g. intensity or rgb values.
+def write_points(points, frame, opt_point_field='i'):
+    pos_dtype = np.float32
+    itemsize = np.dtype(pos_dtype).itemsize  # e.g. a 32-bit float takes 4 bytes.
+    data = points.astype(pos_dtype).tobytes()
 
     # The fields specify what the bytes represents. E.g. The first 4 bytes represents the x-coordinate, the next 4 the
     # y-coordinate, etc.
-    point_fields = [PointField(name=n, offset=i * itemsize, datatype=ros_dtype, count=1) for i, n in enumerate(fields)]
+    point_fields = [PointField(name=n, offset=i * itemsize, datatype=PointField.FLOAT32, count=1)
+                    for i, n in enumerate('xyz')]
+    if opt_point_field:  # add optinal field if not empty
+        point_fields.append(PointField(name=opt_point_field, offset=12, datatype=PointField.FLOAT32, count=1))
 
     # The PointCloud2 message also has a header which specifies which coordinate frame it is represented in.
     header = Header(frame_id=frame)
@@ -61,10 +74,11 @@ def write_points(points, dtype, ros_dtype, frame, fields='xyzi'):
         is_dense=False,
         is_bigendian=False,
         fields=point_fields,
-        point_step=(itemsize * len(fields)),  # Every point consists of three float32s.
-        row_step=(itemsize * len(fields) * points.shape[0]),
+        point_step=(itemsize * len(point_fields)),  # Every point consists of three float32s.
+        row_step=(itemsize * len(point_fields) * points.shape[0]),
         data=data
     )
+
 
 ########################################################################################################################
 # The code / two helper functions below are ported from
